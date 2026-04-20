@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel
 
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent, ModelRetry, RunContext
 
 
 @dataclass
@@ -71,9 +71,12 @@ async def add_customer_name(ctx: RunContext[SupportDependencies]) -> str:
 @support_agent.tool
 async def customer_balance(ctx: RunContext[SupportDependencies]) -> str:
     """Returns the customer's current account balance."""
-    balance = await ctx.deps.db.customer_balance(
-        id=ctx.deps.customer_id,
-    )
+    try:
+        balance = await ctx.deps.db.customer_balance(
+            id=ctx.deps.customer_id,
+        )
+    except ValueError as e:
+        raise ModelRetry(f'Balance unavailable: {e}') from e
     return f'${balance:.2f}'
 
 
