@@ -20,14 +20,16 @@ class DatabaseConn:
     sqlite_conn: sqlite3.Connection
 
     async def customer_name(self, *, id: int) -> str | None:
-        res = cur.execute('SELECT name FROM customers WHERE id=?', (id,))
+        cursor = self.sqlite_conn.cursor()
+        res = cursor.execute('SELECT name FROM customers WHERE id=?', (id,))
         row = res.fetchone()
         if row:
             return row[0]
         return None
 
     async def customer_balance(self, *, id: int) -> float:
-        res = cur.execute('SELECT balance FROM customers WHERE id=?', (id,))
+        cursor = self.sqlite_conn.cursor()
+        res = cursor.execute('SELECT balance FROM customers WHERE id=?', (id,))
         row = res.fetchone()
         if row:
             return row[0]
