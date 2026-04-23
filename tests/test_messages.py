@@ -492,6 +492,16 @@ def test_file_part_has_content():
     assert filepart.has_content()
 
 
+def test_tool_call_part_has_content():
+    # Falsy values still constitute content — args are present.
+    assert ToolCallPart(tool_name='toggle', args={'enabled': False}).has_content()
+    assert ToolCallPart(tool_name='counter', args={'retries': 0}).has_content()
+    assert ToolCallPart(tool_name='search', args={'query': ''}).has_content()
+    # Empty dict and None/empty string have no content.
+    assert not ToolCallPart(tool_name='noop', args={}).has_content()
+    assert not ToolCallPart(tool_name='noop', args='').has_content()
+
+
 def test_file_part_serialization_roundtrip():
     # Verify that a serialized BinaryImage doesn't come back as a BinaryContent.
     messages: list[ModelMessage] = [
