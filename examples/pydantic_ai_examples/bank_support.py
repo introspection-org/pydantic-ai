@@ -45,7 +45,7 @@ class SupportOutput(BaseModel):
     support_advice: str
     """Advice returned to the customer"""
     block_card: bool
-    """Whether to block their card or not"""
+    """Whether to recommend blocking their card"""
     risk: int
     """Risk level of query"""
 
@@ -57,7 +57,8 @@ support_agent = Agent(
     instructions=(
         'You are a support agent in our bank, give the '
         'customer support and judge the risk level of their query. '
-        "Reply using the customer's name."
+        "Reply using the customer's name, and do not claim to have taken an "
+        'action unless a tool has confirmed it.'
     ),
 )
 
@@ -97,5 +98,5 @@ if __name__ == '__main__':
         result = support_agent.run_sync('I just lost my card!', deps=deps)
         print(result.output)
         """
-        support_advice="I'm sorry to hear that, John. We are temporarily blocking your card to prevent unauthorized transactions." block_card=True risk=8
+        support_advice="I'm sorry to hear that, John. I recommend temporarily blocking your card to prevent unauthorized transactions." block_card=True risk=8
         """

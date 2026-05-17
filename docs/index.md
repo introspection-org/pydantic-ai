@@ -116,7 +116,7 @@ class SupportDependencies:  # (3)!
 
 class SupportOutput(BaseModel):  # (13)!
     support_advice: str = Field(description='Advice returned to the customer')
-    block_card: bool = Field(description="Whether to block the customer's card")
+    block_card: bool = Field(description="Whether to recommend blocking the customer's card")
     risk: int = Field(description='Risk level of query', ge=0, le=10)
 
 
@@ -126,7 +126,8 @@ support_agent = Agent(  # (1)!
     output_type=SupportOutput,  # (9)!
     instructions=(  # (4)!
         'You are a support agent in our bank, give the '
-        'customer support and judge the risk level of their query.'
+        'customer support, judge the risk level of their query, and do not '
+        'claim to have taken an action unless a tool has confirmed it.'
     ),
 )
 
@@ -162,7 +163,7 @@ async def main():
     result = await support_agent.run('I just lost my card!', deps=deps)
     print(result.output)
     """
-    support_advice="I'm sorry to hear that, John. We are temporarily blocking your card to prevent unauthorized transactions." block_card=True risk=8
+    support_advice="I'm sorry to hear that, John. I recommend temporarily blocking your card to prevent unauthorized transactions." block_card=True risk=8
     """
 ```
 
@@ -210,7 +211,8 @@ support_agent = Agent(
     output_type=SupportOutput,
     system_prompt=(
         'You are a support agent in our bank, give the '
-        'customer support and judge the risk level of their query.'
+        'customer support, judge the risk level of their query, and do not '
+        'claim to have taken an action unless a tool has confirmed it.'
     ),
 )
 ```
