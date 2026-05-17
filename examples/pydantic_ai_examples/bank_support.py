@@ -54,6 +54,7 @@ support_agent = Agent(
     'openai:gpt-5',
     deps_type=SupportDependencies,
     output_type=SupportOutput,
+    name='bank-support-agent',
     instructions=(
         'You are a support agent in our bank, give the '
         'customer support and judge the risk level of their query. '
@@ -78,24 +79,38 @@ async def customer_balance(ctx: RunContext[SupportDependencies]) -> str:
 
 
 if __name__ == '__main__':
-    with sqlite3.connect(':memory:') as con:
-        cur = con.cursor()
-        cur.execute('CREATE TABLE customers(id, name, balance)')
-        cur.execute("""
-            INSERT INTO customers VALUES
-                (123, 'John', 123.45)
-        """)
-        con.commit()
+    from pydantic_ai_examples.instrumentation import (
+        configure_introspection,
+        shutdown_introspection,
+    )
 
-        deps = SupportDependencies(customer_id=123, db=DatabaseConn(sqlite_conn=con))
-        result = support_agent.run_sync('What is my balance?', deps=deps)
-        print(result.output)
-        """
-        support_advice='Hello John, your current account balance, including pending transactions, is $123.45.' block_card=False risk=1
-        """
+    introspection = configure_introspection()
 
-        result = support_agent.run_sync('I just lost my card!', deps=deps)
-        print(result.output)
-        """
-        support_advice="I'm sorry to hear that, John. We are temporarily blocking your card to prevent unauthorized transactions." block_card=True risk=8
-        """
+    try:
+        with sqlite3.connect(':memory:') as con:
+            cur = con.cursor()
+            cur.execute('CREATE TABLE customers(id, name, balance)')
+            cur.execute("""
+                INSERT INTO customers VALUES
+                    (123, 'John', 123.45)
+            """)
+            con.commit()
+
+            deps = SupportDependencies(customer_id=123, db=DatabaseConn(sqlite_conn=con))
+            with introspection.set_conversation('bank-support-customer-123'):
+                with introspection.set_agent('bank-support-agent'):
+                    result = support_agent.run_sync('What is my balance?', deps=deps)
+            print(result.output)
+            """
+            support_advice='Hello John, your current account balance, including pending transactions, is $123.45.' block_card=False risk=1
+            """
+
+            with introspection.set_conversation('bank-support-customer-123'):
+                with introspection.set_agent('bank-support-agent'):
+                    result = support_agent.run_sync('I just lost my card!', deps=deps)
+            print(result.output)
+            """
+            support_advice="I'm sorry to hear that, John. We are temporarily blocking your card to prevent unauthorized transactions." block_card=True risk=8
+            """
+    finally:
+        shutdown_introspection(introspection)
