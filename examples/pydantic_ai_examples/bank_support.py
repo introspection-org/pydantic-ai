@@ -8,7 +8,7 @@ Run with:
 import sqlite3
 from dataclasses import dataclass
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from pydantic_ai import Agent, RunContext
 
@@ -46,8 +46,8 @@ class SupportOutput(BaseModel):
     """Advice returned to the customer"""
     block_card: bool
     """Whether to block their card or not"""
-    risk: int
-    """Risk level of query"""
+    risk: int = Field(ge=0, le=10)
+    """Risk level of query, between 0 and 10"""
 
 
 support_agent = Agent(
