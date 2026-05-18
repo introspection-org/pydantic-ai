@@ -12,6 +12,8 @@ from pydantic import BaseModel
 
 from pydantic_ai import Agent, RunContext
 
+from .instrumentation import configure_introspection
+
 
 @dataclass
 class DatabaseConn:
@@ -54,6 +56,7 @@ support_agent = Agent(
     'openai:gpt-5',
     deps_type=SupportDependencies,
     output_type=SupportOutput,
+    name='bank-support-agent',
     instructions=(
         'You are a support agent in our bank, give the '
         'customer support and judge the risk level of their query. '
@@ -88,13 +91,19 @@ if __name__ == '__main__':
         con.commit()
 
         deps = SupportDependencies(customer_id=123, db=DatabaseConn(sqlite_conn=con))
-        result = support_agent.run_sync('What is my balance?', deps=deps)
+        introspection = configure_introspection()
+
+        with introspection.set_conversation('bank-support-customer-123'):
+            with introspection.set_agent('bank-support-agent'):
+                result = support_agent.run_sync('What is my balance?', deps=deps)
         print(result.output)
         """
         support_advice='Hello John, your current account balance, including pending transactions, is $123.45.' block_card=False risk=1
         """
 
-        result = support_agent.run_sync('I just lost my card!', deps=deps)
+        with introspection.set_conversation('bank-support-customer-123'):
+            with introspection.set_agent('bank-support-agent'):
+                result = support_agent.run_sync('I just lost my card!', deps=deps)
         print(result.output)
         """
         support_advice="I'm sorry to hear that, John. We are temporarily blocking your card to prevent unauthorized transactions." block_card=True risk=8
