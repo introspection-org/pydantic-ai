@@ -8,7 +8,7 @@ Run with:
 import sqlite3
 from dataclasses import dataclass
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from pydantic_ai import Agent, RunContext
 
@@ -26,11 +26,13 @@ class DatabaseConn:
             return row[0]
         return None
 
-    async def customer_balance(self, *, id: int) -> float:
-        res = cur.execute('SELECT balance FROM customers WHERE id=?', (id,))
+    async def customer_balance(self, *, id: int, include_pending: bool) -> float:
+        res = cur.execute(
+            'SELECT balance, pending_balance FROM customers WHERE id=?', (id,)
+        )
         row = res.fetchone()
         if row:
-            return row[0]
+            return row[1] if include_pending else row[0]
         else:
             raise ValueError('Customer not found')
 
@@ -42,12 +44,9 @@ class SupportDependencies:
 
 
 class SupportOutput(BaseModel):
-    support_advice: str
-    """Advice returned to the customer"""
-    block_card: bool
-    """Whether to block their card or not"""
-    risk: int
-    """Risk level of query"""
+    support_advice: str = Field(description='Advice returned to the customer')
+    block_card: bool = Field(description="Whether to block the customer's card")
+    risk: int = Field(description='Risk level of query', ge=0, le=10)
 
 
 support_agent = Agent(
@@ -69,21 +68,23 @@ async def add_customer_name(ctx: RunContext[SupportDependencies]) -> str:
 
 
 @support_agent.tool
-async def customer_balance(ctx: RunContext[SupportDependencies]) -> str:
+async def customer_balance(
+    ctx: RunContext[SupportDependencies], include_pending: bool
+) -> float:
     """Returns the customer's current account balance."""
-    balance = await ctx.deps.db.customer_balance(
+    return await ctx.deps.db.customer_balance(
         id=ctx.deps.customer_id,
+        include_pending=include_pending,
     )
-    return f'${balance:.2f}'
 
 
 if __name__ == '__main__':
     with sqlite3.connect(':memory:') as con:
         cur = con.cursor()
-        cur.execute('CREATE TABLE customers(id, name, balance)')
+        cur.execute('CREATE TABLE customers(id, name, balance, pending_balance)')
         cur.execute("""
             INSERT INTO customers VALUES
-                (123, 'John', 123.45)
+                (123, 'John', 123.45, 123.45)
         """)
         con.commit()
 
