@@ -13,7 +13,7 @@ except ImportError:  # pragma: no cover - introspection-sdk requires Python >=3.
     IntrospectionSpanProcessor = None
 
 
-SERVICE_NAME = 'bank-support'
+SERVICE_NAME = 'bank-support-agent'
 
 
 class NoOpIntrospection:
